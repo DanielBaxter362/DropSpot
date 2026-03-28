@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoNotes - Register</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+    <div class="shell">
+        <div class="brand">Geo<span>Notes</span></div>
+        <div class="subtitle">Create a simple account to get started.</div>
+
+        <div class="card">
+            <h1>Register</h1>
+
+            {% if message %}
+            <div class="message">{{ message }}</div>
+            {% endif %}
+
+            <form method="POST" action="/register">
+                <label>Email</label>
+                <input type="text" name="email">
+
+                <label>Password</label>
+                <input type="password" name="password">
+
+                <button type="submit">Create Account</button>
+            </form>
+
+            <div class="footer-link">Already have an account? <a href="/login">Login</a></div>
+        </div>
+    </div>
+</body>
+</html>
