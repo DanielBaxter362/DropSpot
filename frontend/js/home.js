@@ -178,13 +178,19 @@ async function handleSaveSpot() {
   const lat = lastKnownPosition.lat;
   const lon = lastKnownPosition.lng;
 
+  const savedSpot = await saveSpot(text, lat, lon);
+
+  if (!savedSpot) {
+    return;
+  }
+
   const spot = {
     id: Date.now(),
-    lat: lat,
-    lng: lon,
-    text: text,
+    lat: savedSpot.latitude,
+    lng: savedSpot.longitude,
+    text: savedSpot.content,
     time: new Date().toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }),
-    hotspot: false
+    hotspot: savedSpot.hotspot
   };
 
   spots.push(spot);
@@ -193,6 +199,33 @@ async function handleSaveSpot() {
   updateStats();
   toast("Spot saved! 📍");
   closeModal();
+}
+
+async function saveSpot(content, lat, lon) {
+  try {
+    const response = await fetch("http://127.0.0.1:5000/api/spots", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        content: content,
+        latitude: lat,
+        longitude: lon
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to save spot");
+    }
+
+    const data = await response.json();
+    return data.spot;
+  } catch (error) {
+    console.error("Error saving spot:", error);
+    toast("Failed to save spot");
+    return null;
+  }
 }
 
 // ── Add Marker ──
