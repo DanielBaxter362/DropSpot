@@ -4,7 +4,11 @@ from flask_cors import CORS
 from routes import init_routes
 
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder="../frontend/html",
+    static_folder="../frontend",
+)
 app.secret_key = "dev-secret-key"
 CORS(app)
 

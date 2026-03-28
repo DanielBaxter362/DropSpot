@@ -51,14 +51,15 @@ function makeYouIcon() {
 // ── Locate user ──
 function locateMe() {
   if (!navigator.geolocation) return toast('Geolocation not supported.');
-  navigator.geolocation.getCurrentPosition(pos => {
+  navigator.geolocation.getCurrentPosition(async pos => {
     const { latitude: lat, longitude: lon } = pos.coords;
     lastKnownPosition = { lat : lat, lng: lon};
     if (userMarker) map.removeLayer(userMarker);
     userMarker = L.marker([lat, lon], { icon: makeYouIcon(), zIndexOffset: 1000 }).addTo(map);
     map.flyTo([lat, lon], 15, { duration: 1.2 });
     toast('📍 Location found!');
-    fetchNearbySpots(lat, lon);
+    const result = await fetchNearbySpots(lat, lon);
+    displayNearbyNotes(result.notes || []);
   }, () => toast('Could not get location.'));
 
     
@@ -68,9 +69,16 @@ function locateMe() {
 
 async function fetchNearbySpots(lat, lon) {
     try {
-        const response = await fetch(
-            `"http://127.0.0.1:5000/api/spots/nearby"?lat=${lat}&lon=${lon}`
-        );
+        const response = await fetch("http://127.0.0.1:5000/api/spots/nearby", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                latitude: lat,
+                longitude: lon
+            })
+        });
 
         if (!response.ok) {
             throw new Error("Failed to fetch spots");
@@ -81,7 +89,7 @@ async function fetchNearbySpots(lat, lon) {
 
     } catch (error) {
             console.error("Error fetching nearby spots:", error);
-            return [];
+            return { notes: [] };
     }
 }
 
@@ -92,7 +100,13 @@ function displayNearbyNotes(notes) {
     spotMarkers = [];
 
     // Add new markers
-    notes.forEach(note => addMarker(note));
+    notes.forEach(note => addMarker({
+      lat: note.latitude,
+      lng: note.longitude,
+      text: "Nearby spot",
+      time: "Loaded from backend",
+      hotspot: false
+    }));
 
     toast(`${notes.length} nearby notes added`);
 }
@@ -127,7 +141,7 @@ document.getElementById('spot-modal').addEventListener('click', (e) => {
 // ── Save spot ──
 
 async function handleSaveSpot() {
-  const text = document.getElementById('note-text').value.trim();
+  const text = document.getElementById('spot-text').value.trim();
 
   if (!text) {
     toast("Please write something first!");
@@ -138,43 +152,21 @@ async function handleSaveSpot() {
   const lat = lastKnownPosition.lat;
   const lon = lastKnownPosition.lng;
 
-  // Example userID (replace later with real auth)
-  const userID = 0;
+  const spot = {
+    id: Date.now(),
+    lat: lat,
+    lng: lon,
+    text: text,
+    time: new Date().toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }),
+    hotspot: false
+  };
 
-  await saveSpot(userID, text, lat, lon, tag);
-
+  spots.push(spot);
+  localStorage.setItem('geospots', JSON.stringify(spots));
+  addMarker(spot);
+  updateStats();
+  toast("Spot saved! 📍");
   closeModal();
-}
-
-async function saveSpot(userID, note, lat, lon) {
-  try {
-    const response = await fetch("http://127.0.0.1:5000/api/spots/nearby", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        userID: userID,
-        latitude: lat,
-        longitude: lon,
-        note: note,
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to save spot");
-    }
-
-    const data = await response.json();
-
-    toast("Spot saved! 📍");
-
-    return data;
-
-  } catch (error) {
-    console.error("Error saving spot:", error);
-    toast("Failed to save spot");
-  }
 }
 
 // ── Add Marker ──
