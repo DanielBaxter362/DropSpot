@@ -58,6 +58,7 @@ function locateMe() {
     userMarker = L.marker([lat, lon], { icon: makeYouIcon(), zIndexOffset: 1000 }).addTo(map);
     map.flyTo([lat, lon], 15, { duration: 1.2 });
     toast('📍 Location found!');
+    await updateHotspots(lat, lon);
     const result = await fetchNearbySpots(lat, lon);
     displayNearbyNotes(result.notes || []);
   }, () => toast('Could not get location.'));
@@ -90,6 +91,30 @@ async function fetchNearbySpots(lat, lon) {
     } catch (error) {
             console.error("Error fetching nearby spots:", error);
             return { notes: [] };
+    }
+}
+
+async function updateHotspots(lat, lon) {
+    try {
+        const response = await fetch("http://127.0.0.1:5000/api/hotspots/update", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                latitude: lat,
+                longitude: lon
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to update hotspots");
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error("Error updating hotspots:", error);
+        return null;
     }
 }
 
