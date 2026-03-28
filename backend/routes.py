@@ -7,7 +7,7 @@ from mysql.connector import Error
 from config import DBconnect
 
 
-SEARCH_RADIUS_MILES = 1
+SEARCH_RADIUS_MILES = 10
 HOTSPOT_RADIUS_METRES = 50
 HOTSPOT_THRESHOLD = 2
 
@@ -48,7 +48,7 @@ def handle_nearby_spots_request(latitude, longitude):
         with connection.cursor(dictionary=True) as cursor:
             cursor.execute(
                 """
-                SELECT latitude, longitude
+                SELECT latitude, longitude, hotspot
                 FROM notes
                 WHERE latitude IS NOT NULL AND longitude IS NOT NULL
                 """,
@@ -69,6 +69,7 @@ def handle_nearby_spots_request(latitude, longitude):
                 {
                     "latitude": note_lat,
                     "longitude": note_lng,
+                    "hotspot": bool(row["hotspot"]),
                 }
             )
 

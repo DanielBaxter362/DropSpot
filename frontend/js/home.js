@@ -130,9 +130,10 @@ function displayNearbyNotes(notes) {
       lng: note.longitude,
       text: "Nearby spot",
       time: "Loaded from backend",
-      hotspot: false
+      hotspot: note.hotspot
     }));
 
+    console.log(notes);
     toast(`${notes.length} nearby notes added`);
 }
 
@@ -200,7 +201,7 @@ function addMarker(spot) {
     <div class="popup-spot-text">${escHtml(spot.text)}</div>
     <div class="popup-meta">${spot.time}</div>
   `;
-    if (spot.hotspot == 1) {
+    if (spot.hotspot) {
     const marker = L.marker([spot.lat, spot.lng], { icon: makeHotspotIcon() })
         .addTo(map)
         .bindPopup(popupHtml);
