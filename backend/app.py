@@ -2,6 +2,7 @@ from flask import Flask
 from flask_cors import CORS
 
 from routes import init_routes
+from addSpot import init_addSpot
 
 
 app = Flask(
@@ -13,7 +14,7 @@ app.secret_key = "dev-secret-key"
 CORS(app)
 
 init_routes(app)
-
+init_addSpot(app)
 
 if __name__ == "__main__":
     app.run(debug=True)
