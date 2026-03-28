@@ -330,6 +330,25 @@ header {
 }
 .spot-dot:hover { transform: scale(1.4); }
 
+.placed-spot {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placed-spot-ring {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 107, 53, 0.18);
+  border: 1px solid rgba(255, 107, 53, 0.45);
+  box-shadow: 0 0 18px rgba(255, 107, 53, 0.3);
+}
+
 .hotspot-dot {
   width: 14px;
   height: 14px;

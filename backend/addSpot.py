@@ -20,6 +20,20 @@ def add_spot_to_db(user_id, content, latitude, longitude):
         connection.close()
 
 
+def parse_spot_payload(payload):
+    content = (payload.get("content") or "").strip()
+    latitude = payload.get("latitude")
+    longitude = payload.get("longitude")
+
+    if not content:
+        raise ValueError("content is required")
+
+    if latitude is None or longitude is None:
+        raise ValueError("latitude and longitude are required")
+
+    return content, float(latitude), float(longitude)
+
+
 def init_addSpot(app):
     @app.route("/api/spots", methods=["POST"])
     def add_spot_route():
@@ -27,21 +41,11 @@ def init_addSpot(app):
             return jsonify({"error": "Not logged in"}), 401
 
         payload = request.get_json(silent=True) or {}
-        content = (payload.get("content") or "").strip()
-        latitude = payload.get("latitude")
-        longitude = payload.get("longitude")
-
-        if not content:
-            return jsonify({"error": "content is required"}), 400
-
-        if latitude is None or longitude is None:
-            return jsonify({"error": "latitude and longitude are required"}), 400
 
         try:
-            latitude = float(latitude)
-            longitude = float(longitude)
-        except (TypeError, ValueError):
-            return jsonify({"error": "Invalid coordinates"}), 400
+            content, latitude, longitude = parse_spot_payload(payload)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
 
         try:
             add_spot_to_db(session["userID"], content, latitude, longitude)

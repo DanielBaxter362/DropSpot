@@ -16,6 +16,32 @@ def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 
+def parse_coordinates(payload):
+    latitude = payload.get("latitude")
+    longitude = payload.get("longitude")
+
+    if latitude is None or longitude is None:
+        raise ValueError("latitude and longitude are required")
+
+    return float(latitude), float(longitude)
+
+
+def fetch_all_note_coordinates():
+    connection = DBconnect()
+    try:
+        with connection.cursor(dictionary=True) as cursor:
+            cursor.execute(
+                """
+                SELECT noteID, latitude, longitude, hotspot
+                FROM notes
+                WHERE latitude IS NOT NULL AND longitude IS NOT NULL
+                """
+            )
+            return cursor.fetchall()
+    finally:
+        connection.close()
+
+
 def get_user_by_email(email):
     connection = DBconnect()
     try:
@@ -43,20 +69,7 @@ def create_user(email, password):
 
 
 def handle_nearby_spots_request(latitude, longitude):
-    connection = DBconnect()
-    try:
-        with connection.cursor(dictionary=True) as cursor:
-            cursor.execute(
-                """
-                SELECT latitude, longitude, hotspot
-                FROM notes
-                WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-                """,
-            )
-            rows = cursor.fetchall()
-    finally:
-        connection.close()
-
+    rows = fetch_all_note_coordinates()
     nearby_notes = []
 
     for row in rows:
@@ -85,17 +98,11 @@ def handle_nearby_spots_request(latitude, longitude):
 
 
 def handle_hotspot_update_request(latitude, longitude, user_id):
+    _ = (latitude, longitude, user_id)
+    notes = fetch_all_note_coordinates()
     connection = DBconnect()
     try:
         with connection.cursor(dictionary=True) as cursor:
-            cursor.execute(
-                """
-                SELECT noteID, latitude, longitude
-                FROM notes
-                WHERE latitude IS NOT NULL AND longitude IS NOT NULL
-                """
-            )
-            notes = cursor.fetchall()
             hotspot_note_ids = set()
             note_ids = [note["noteID"] for note in notes]
             adjacency = {note_id: set() for note_id in note_ids}
@@ -144,10 +151,7 @@ def handle_hotspot_update_request(latitude, longitude, user_id):
             cursor.execute("UPDATE notes SET hotspot = 0")
 
             for note_id in hotspot_note_ids:
-                cursor.execute(
-                    "UPDATE notes SET hotspot = 1 WHERE noteID = %s",
-                    (note_id,),
-                )
+                cursor.execute("UPDATE notes SET hotspot = 1 WHERE noteID = %s", (note_id,))
 
         connection.commit()
     finally:
@@ -202,6 +206,9 @@ def get_distance_in_metres(lat1, lng1, lat2, lng2):
 
 
 def init_routes(app):
+    def database_busy_response(message="Database unavailable"):
+        return jsonify({"error": message}), 503
+
     @app.route("/")
     def index():
         if session.get("userID"):
@@ -217,7 +224,8 @@ def init_routes(app):
             password = request.form.get("password", "")
 
             try:
-                if get_user_by_email(email):
+                existing_user = get_user_by_email(email)
+                if existing_user:
                     message = "Account already exists."
                 else:
                     create_user(email, password)
@@ -264,24 +272,18 @@ def init_routes(app):
     @app.route("/api/spots/nearby", methods=["POST"])
     def api_nearby_spots():
         payload = request.get_json(silent=True) or {}
-        latitude = payload.get("latitude")
-        longitude = payload.get("longitude")
-
-        if latitude is None or longitude is None:
-            return jsonify({"error": "latitude and longitude are required"}), 400
 
         try:
-            latitude = float(latitude)
-            longitude = float(longitude)
-        except (TypeError, ValueError):
-            return jsonify({"error": "latitude and longitude must be numbers"}), 400
+            latitude, longitude = parse_coordinates(payload)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
 
         try:
             result = handle_nearby_spots_request(latitude, longitude)
             return jsonify(result), 200
         except Error as e:
             print(e)
-            return jsonify({"error": "Database unavailable"}), 503
+            return database_busy_response()
 
     @app.route("/api/hotspots/update", methods=["POST"])
     def update_hotspots_route():
@@ -289,16 +291,10 @@ def init_routes(app):
             return jsonify({"error": "Not logged in"}), 401
 
         payload = request.get_json(silent=True) or {}
-        latitude = payload.get("latitude")
-        longitude = payload.get("longitude")
-
-        if latitude is None or longitude is None:
-            return jsonify({"error": "latitude and longitude are required"}), 400
 
         try:
-            latitude = float(latitude)
-            longitude = float(longitude)
-        except (TypeError, ValueError):
+            latitude, longitude = parse_coordinates(payload)
+        except ValueError:
             return jsonify({"error": "Invalid coordinates"}), 400
 
         try:
@@ -306,4 +302,4 @@ def init_routes(app):
             return jsonify(result), 200
         except Error as e:
             print(e)
-            return jsonify({"error": "Database unavailable"}), 503
+            return database_busy_response()
