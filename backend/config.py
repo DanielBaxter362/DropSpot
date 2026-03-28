@@ -1,36 +1,22 @@
 import mysql.connector
-
-
-HOSTNAME = "goh7hy.h.filess.io"
-DATABASE = "dropspot_additionup"
-PORT = "61002"
-USERNAME = "dropspot_additionup"
-PASSWORD = "a66f750d2e587bee465df6c853dd54ae7fe88cba"
-
+import time
+import os
 
 def DBconnect():
-    return mysql.connector.connect(
-        host=HOSTNAME,
-        database=DATABASE,
-        user=USERNAME,
-        password=PASSWORD,
-        port=PORT,
-    )
-
-
-def ensure_login_table():
-    connection = DBconnect()
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS loginSystem (
-                    userID INT AUTO_INCREMENT PRIMARY KEY,
-                    email VARCHAR(255) NOT NULL UNIQUE,
-                    hashPW VARCHAR(255) NOT NULL
-                )
-                """
+    while True:
+        try:
+            # Connect to the MySQL database and specify the database
+            mydb = mysql.connector.connect(
+                host="mysql-35696173-dropspot.e.aivencloud.com",
+                user="avnadmin",
+                password="AVNS_ItCf9ga7ieYw24gVSqi",
+                port=18662,
+                database="defaultdb",
+                ssl_ca='hotspot/ca.pem'
             )
-        connection.commit()
-    finally:
-        connection.close()
+            print("Connected to MySQL!")
+            return mydb
+        except mysql.connector.Error as e:
+            print("Error Connecting, retrying...")
+            print(f"Error: {e}")
+            time.sleep(3)
