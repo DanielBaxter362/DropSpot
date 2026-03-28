@@ -12,7 +12,7 @@ def DBconnect():
                 password="AVNS_ItCf9ga7ieYw24gVSqi",
                 port=18662,
                 database="defaultdb",
-                ssl_ca='hotspot/ca.pem'
+                ssl_ca='DropSpot/ca.pem'
             )
             print("Connected to MySQL!")
             return mydb

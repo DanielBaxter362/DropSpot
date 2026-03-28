@@ -175,7 +175,7 @@ function addMarker(spot) {
     <div class="popup-spot-text">${escHtml(spot.text)}</div>
     <div class="popup-meta">${spot.time}</div>
   `;
-    if (spot.hotspot == true) {
+    if (spot.hotspot == 1) {
     const marker = L.marker([spot.lat, spot.lng], { icon: makeHotspotIcon() })
         .addTo(map)
         .bindPopup(popupHtml);

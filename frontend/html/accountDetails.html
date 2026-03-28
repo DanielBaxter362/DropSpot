@@ -1,31 +1,322 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DropSpot — Leave Your Mark. Find A Story</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DropSpot — Account Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* ── Account Page Layout ── */
+    body {
+      overflow: auto;
+    }
 
+    .account-body {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* ── Page Title ── */
+    .page-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .page-title span { color: var(--accent); }
+    .page-subtitle {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    /* ── Section Card ── */
+    .settings-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      animation: fadeUp 0.3s ease both;
+    }
+
+    .settings-section:nth-child(2) { animation-delay: 0.05s; }
+    .settings-section:nth-child(3) { animation-delay: 0.10s; }
+    .settings-section:nth-child(4) { animation-delay: 0.15s; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .section-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-icon {
+      font-size: 1rem;
+      width: 28px;
+      text-align: center;
+    }
+
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .section-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ── Form Rows ── */
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-row-inline {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+
+    .form-row-inline .form-row { flex: 1; }
+
+    /* ── Divider ── */
+    .section-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 4px 0;
+    }
+
+    /* ── Spots List ── */
+    .notes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .note-item {
+      background: var(--spot-bg);
+      border: 1px solid var(--border);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: border-color 0.15s;
+    }
+    .note-item:hover { border-color: var(--muted); }
+
+    .note-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .note-item-meta {
+      font-size: 0.62rem;
+      color: var(--muted);
+      display: flex;
+      gap: 12px;
+    }
+
+    .note-item-tag {
+      color: var(--accent2);
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .note-item-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .note-item-text {
+      font-size: 0.78rem;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .note-edit-area {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .note-edit-area.open { display: flex; }
+
+    .btn-sm {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.62rem;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: all 0.15s;
+    }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm.danger:hover { border-color: var(--hot); color: var(--hot); }
+    .btn-sm.confirm { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Empty notes state ── */
+    .notes-empty {
+      text-align: center;
+      padding: 30px 20px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      line-height: 2;
+    }
+
+    /* ── Save button row ── */
+    .save-row {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 4px;
+    }
+
+    /* ── Danger zone ── */
+    .danger-text {
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .danger-text b { color: var(--hot); }
+  </style>
 </head>
-
-
+<body>
 
 <header>
   <div class="logo">
     Drop<span>Spot</span>
-    <div class="tagline">Make A Mark. Find A Story.</span></div>
+    <div class="tagline">Make A Mark. Find A Story.</div>
   </div>
-
-
-  <div class="btn" onclick="returnToHome()"> Return to Homepage</div>
+  <div class="header-actions">
+    <button class="btn" onclick="returnToHome()">← Return to Map</button>
+  </div>
 </header>
 
-<body>
+<div class="account-body">
+
+  <!-- Page heading -->
+  <div>
+    <div class="page-title">Account <span>Settings</span></div>
+    <div class="page-subtitle">Manage your profile, security, and spots.</div>
+  </div>
+
+  <!-- ── Profile ── -->
+  <div class="settings-section">
+    <div class="section-header">
+      <div class="section-icon">👤</div>
+      <div class="section-title">Profile</div>
+    </div>
+    <div class="section-body">
+      <div class="form-row">
+        <label class="field-label">Username</label>
+        <input class="field-input" id="username" type="text" placeholder="your_username" />
+      </div>
+      <div class="form-row">
+        <label class="field-label">Bio <span style="color:var(--muted);font-size:0.6rem;">(optional)</span></label>
+        <textarea class="field-textarea" id="bio" placeholder="A few words about yourself..." style="height:70px;margin-bottom:0;"></textarea>
+      </div>
+      <div class="save-row">
+        <button class="btn primary" onclick="saveProfile()">Save Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Security ── -->
+  <div class="settings-section">
+    <div class="section-header">
+      <div class="section-icon">🔒</div>
+      <div class="section-title">Security</div>
+    </div>
+    <div class="section-body">
+
+      <!-- Change Email -->
+      <div class="form-row">
+        <label class="field-label">Email Address</label>
+        <div class="form-row-inline">
+          <div class="form-row">
+            <input class="field-input" id="email-current" type="email" placeholder="current@email.com" style="margin-bottom:0;" />
+          </div>
+          <div class="form-row">
+            <input class="field-input" id="email-new" type="email" placeholder="new@email.com" style="margin-bottom:0;" />
+          </div>
+        </div>
+      </div>
+      <div class="save-row">
+        <button class="btn" onclick="changeEmail()">Update Email</button>
+      </div>
+
+      <hr class="section-divider">
+
+      <!-- Change Password -->
+      <div class="form-row">
+        <label class="field-label">Change Password</label>
+        <input class="field-input" id="password-current" type="password" placeholder="Current password" />
+        <input class="field-input" id="password-new" type="password" placeholder="New password" />
+        <input class="field-input" id="password-confirm" type="password" placeholder="Confirm new password" style="margin-bottom:0;" />
+      </div>
+      <div class="save-row">
+        <button class="btn" onclick="changePassword()">Update Password</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── My Spots ── -->
+  <div class="settings-section">
+    <div class="section-header">
+      <div class="section-icon">📍</div>
+      <div class="section-title">My Spots</div>
+    </div>
+    <div class="section-body">
+      <div class="notes-list" id="notes-list">
+        <!-- Populated by account.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Danger Zone ── -->
+  <div class="settings-section" style="border-color: #2e1a1a;">
+    <div class="section-header" style="border-color: #2e1a1a;">
+      <div class="section-icon">⚠️</div>
+      <div class="section-title" style="color: var(--hot);">Danger Zone</div>
+    </div>
+    <div class="section-body">
+      <p class="danger-text">
+        Deleting your account is <b>permanent</b> and cannot be undone.
+        All your spots and data will be removed immediately.
+      </p>
+      <div>
+        <button class="btn" style="border-color:#2e1a1a;color:var(--hot);" onclick="confirmDeleteAccount()">
+          Delete Account
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
 <script src="account.js"></script>
 </body>
-
 </html>
