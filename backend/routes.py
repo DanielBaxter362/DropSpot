@@ -8,9 +8,9 @@ from config import DBconnect
 
 
 SEARCH_RADIUS_MILES = 10
-HOTSPOT_RADIUS_METRES = 50
+HOTSPOT_RADIUS_METRES = 150
 HOTSPOT_THRESHOLD = 2
-CONTENT_UNLOCK_RADIUS_METRES = 15
+CONTENT_UNLOCK_RADIUS_METRES = 50
 
 
 def hash_password(password):
@@ -58,10 +58,7 @@ def build_note_title(content):
     if not cleaned_content:
         return "Untitled note"
 
-    if len(cleaned_content) <= 32:
-        return cleaned_content
-
-    return f"{cleaned_content[:32].rstrip()}..."
+    return cleaned_content
 
 
 def get_user_by_email(email):

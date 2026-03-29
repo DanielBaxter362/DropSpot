@@ -1,10 +1,10 @@
 // ── State ──
 let spots = JSON.parse(localStorage.getItem('geospots') || '[]');
 let pendingLatLng = null;
-let map, userMarker, contentRadiusCircle, hotspotCircles = [], spotMarkers = [];
+let map, markerClusterLayer, userMarker, contentRadiusCircle, hotspotCircles = [], spotMarkers = [];
 let lastKnownPosition = null;
 const API_BASE_URL = "http://127.0.0.1:5000";
-const CONTENT_UNLOCK_RADIUS_METRES = 15;
+const CONTENT_UNLOCK_RADIUS_METRES = 50;
 const ZOOM_LEVELS = [5,8,10,12,16,18,20];
 const ZOOM_RADIUS_MILES = [220, 150, 90, 35, 12, 3, 0.75];
 
@@ -23,6 +23,30 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   subdomains: 'abcd',
   maxZoom: 20
 }).addTo(map);
+
+markerClusterLayer = L.markerClusterGroup({
+  showCoverageOnHover: false,
+  spiderfyOnMaxZoom: true,
+  maxClusterRadius: 50,
+  iconCreateFunction(cluster) {
+    const childMarkers = cluster.getAllChildMarkers();
+    const containsHotspot = childMarkers.some(marker => marker._isHotspot);
+    const count = childMarkers.length;
+    const clusterClass = containsHotspot ? 'hotspot-cluster' : 'spot-cluster';
+
+    return L.divIcon({
+      html: `
+        <div class="${clusterClass}">
+          <span>${count}</span>
+        </div>
+      `,
+      className: 'marker-cluster-custom',
+      iconSize: [38, 38],
+    });
+  }
+});
+
+map.addLayer(markerClusterLayer);
 
 // ── Snapped scroll zoom (5 levels only) ──
 map.getContainer().addEventListener('wheel', (e) => {
@@ -107,6 +131,36 @@ function createDisplayedSpot(note) {
     hotspot: note.hotspot,
     id: note.id || note.noteID || Date.now(),
   };
+}
+
+function buildExpandableText(className, text, limit) {
+  const safeText = String(text || "");
+  const preview = safeText.length > limit
+    ? `${safeText.slice(0, limit).trimEnd()}...`
+    : safeText;
+
+  if (!safeText || safeText.length <= limit || safeText === "Locked!") {
+    return `<div class="${className}">${escHtml(safeText)}</div>`;
+  }
+
+  return `
+    <div class="popup-expandable">
+      <div class="${className} popup-preview">${escHtml(preview)}</div>
+      <div class="${className} popup-full">${escHtml(safeText)}</div>
+      <button class="popup-toggle" type="button" onclick="toggleExpandable(this)">Show more</button>
+    </div>
+  `;
+}
+
+function toggleExpandable(button) {
+  const wrapper = button.closest('.popup-expandable');
+
+  if (!wrapper) {
+    return;
+  }
+
+  wrapper.classList.toggle('open');
+  button.textContent = wrapper.classList.contains('open') ? 'Show less' : 'Show more';
 }
 
 function getCurrentRadiusMiles() {
@@ -222,14 +276,13 @@ async function updateHotspots(lat, lon) {
 
 function displayNearbyNotes(notes) {
   // Remove old markers from the map
-  spotMarkers.forEach(m => map.removeLayer(m));
+  markerClusterLayer.clearLayers();
   spotMarkers = [];
 
   // Add new markers
   notes.forEach(note => addMarker(createDisplayedSpot(note)));
 
   console.log(notes);
-  toast(`${notes.length} nearby notes added`);
 }
 
 
@@ -283,7 +336,7 @@ async function handleSaveSpot() {
     id: Date.now(),
     lat: savedSpot.latitude,
     lng: savedSpot.longitude,
-    title: text.length <= 32 ? text : `${text.slice(0, 32).trimEnd()}...`,
+    title: text,
     text: savedSpot.content,
     hotspot: savedSpot.hotspot,
     isFresh: true
@@ -319,8 +372,8 @@ async function saveSpot(content, lat, lon) {
 // ── Add Marker ──
 function addMarker(spot) {
   const popupHtml = `
-    <div class="popup-title">${escHtml(spot.title || "Nearby spot")}</div>
-    <div class="popup-spot-text">${escHtml(spot.text)}</div>
+    ${buildExpandableText("popup-title", spot.title || "Nearby spot", 36)}
+    ${buildExpandableText("popup-spot-text", spot.text || "", 120)}
   `;
 
   const icon = spot.hotspot
@@ -330,8 +383,9 @@ function addMarker(spot) {
       : makeSpotIcon();
 
   const marker = L.marker([spot.lat, spot.lng], { icon })
-    .addTo(map)
     .bindPopup(popupHtml);
+  marker._isHotspot = Boolean(spot.hotspot);
+  markerClusterLayer.addLayer(marker);
   marker._spotId = spot.id;
   spotMarkers.push(marker);
 }
@@ -382,7 +436,7 @@ function clearAll() {
   if (!confirm('Delete all spots? This cannot be undone.')) return;
   spots = [];
   localStorage.removeItem('geospots');
-  spotMarkers.forEach(m => map.removeLayer(m));
+  markerClusterLayer.clearLayers();
   spotMarkers = [];
   hotspotCircles.forEach(c => map.removeLayer(c));
   hotspotCircles = [];

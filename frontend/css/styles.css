@@ -472,6 +472,36 @@ header {
 }
 .hotspot-dot:hover { transform: scale(1.4); }
 
+.marker-cluster-custom {
+  background: transparent;
+  border: none;
+}
+
+.spot-cluster,
+.hotspot-cluster {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 2px solid rgba(10, 10, 15, 0.75);
+  box-shadow: 0 0 18px rgba(0, 0, 0, 0.25);
+}
+
+.spot-cluster {
+  background: rgba(255, 107, 53, 0.9);
+  color: #0a0a0f;
+}
+
+.hotspot-cluster {
+  background: rgba(255, 51, 102, 0.92);
+  color: #fff;
+}
+
 /* ── Location indicator ── */
 .you-dot {
   width: 18px;
@@ -545,6 +575,35 @@ header {
   margin-bottom: 6px;
 }
 .popup-spot-text { color: var(--text); margin-bottom: 8px; }
+.popup-expandable .popup-full {
+  display: none;
+}
+
+.popup-expandable.open .popup-preview {
+  display: none;
+}
+
+.popup-expandable.open .popup-full {
+  display: block;
+}
+
+.popup-toggle {
+  background: transparent;
+  border: none;
+  color: var(--accent2);
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.04em;
+  padding: 0;
+  margin: -2px 0 8px;
+  text-transform: uppercase;
+}
+
+.popup-toggle:hover {
+  color: var(--accent);
+}
+
 .popup-meta { font-size: 0.62rem; color: var(--muted); }
 .popup-tag {
   color: var(--accent2);
