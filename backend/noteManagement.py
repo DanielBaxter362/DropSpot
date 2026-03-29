@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask import jsonify, render_template, request, session
 from mysql.connector import Error
 
@@ -59,7 +61,7 @@ def get_user_notes(user_id):
         with connection.cursor(dictionary=True) as cursor:
             cursor.execute(
                 """
-                SELECT noteID, content, latitude, longitude, hotspot
+                SELECT noteID, content, latitude, longitude, hotspot, createdAt
                 FROM notes
                 WHERE userID = %s
                 ORDER BY noteID DESC
@@ -153,6 +155,16 @@ def combine_note_content(title, description):
     return f"{clean_title}{NOTE_CONTENT_SEPARATOR}{clean_description}"
 
 
+def serialize_created_at(value):
+    if value is None:
+        return None
+
+    if isinstance(value, datetime):
+        return value.isoformat(timespec="seconds")
+
+    return str(value)
+
+
 def serialize_note(row):
     title, description = split_note_content(row["content"] or "")
 
@@ -163,6 +175,7 @@ def serialize_note(row):
         "content": row["content"] or "",
         "latitude": float(row["latitude"]) if row["latitude"] is not None else None,
         "longitude": float(row["longitude"]) if row["longitude"] is not None else None,
+        "createdAt": serialize_created_at(row.get("createdAt")),
         "hotspot": bool(row["hotspot"]),
     }
 

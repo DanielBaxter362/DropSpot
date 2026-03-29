@@ -8,7 +8,7 @@ const CONTENT_UNLOCK_RADIUS_METRES = 50;
 const ZOOM_LEVELS = [5,8,10,12,16,18,20];
 const ZOOM_RADIUS_MILES = [220, 150, 90, 35, 12, 3, 0.75];
 const SAVED_ZOOM_KEY = "dropspot-map-zoom";
-const LOCATION_REFRESH_MS = 5000;
+const LOCATION_REFRESH_MS = 20000;
 const savedZoom = Number.parseInt(localStorage.getItem(SAVED_ZOOM_KEY) || "", 10);
 const initialZoom = Number.isFinite(savedZoom) && ZOOM_LEVELS.includes(savedZoom) ? savedZoom : 18;
 
@@ -132,9 +132,42 @@ function createDisplayedSpot(note) {
     lng: note.longitude,
     title: note.title || "Nearby spot",
     text: note.content || "",
+    createdAt: note.createdAt || null,
     hotspot: note.hotspot,
     id: note.id || note.noteID || Date.now(),
   };
+}
+
+function formatRelativeTime(value) {
+  if (!value) {
+    return "";
+  }
+
+  const timestamp = new Date(value);
+
+  if (Number.isNaN(timestamp.getTime())) {
+    return "";
+  }
+
+  const diffMs = Date.now() - timestamp.getTime();
+  const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
+
+  if (diffMinutes < 1) {
+    return "Just now";
+  }
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} min${diffMinutes === 1 ? "" : "s"} ago`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+
+  if (diffHours < 24) {
+    return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
 }
 
 function buildExpandableText(className, text, limit) {
@@ -402,6 +435,7 @@ async function handleSaveSpot() {
     lng: savedSpot.longitude,
     title: savedSpot.title,
     text: savedSpot.description,
+    createdAt: savedSpot.createdAt,
     hotspot: savedSpot.hotspot,
     isFresh: true
   };
@@ -436,9 +470,11 @@ async function saveSpot(title, description, lat, lon) {
 
 // ── Add Marker ──
 function addMarker(spot) {
+  const relativeTime = formatRelativeTime(spot.createdAt);
   const popupHtml = `
     ${buildExpandableText("popup-title", spot.title || "Nearby spot", 36)}
     ${buildExpandableText("popup-spot-text", spot.text || "", 120)}
+    ${relativeTime ? `<div class="popup-meta">${escHtml(relativeTime)}</div>` : ""}
   `;
 
   const icon = spot.hotspot

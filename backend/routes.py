@@ -1,5 +1,6 @@
 import hashlib
 import math
+from datetime import datetime
 
 from flask import jsonify, redirect, render_template, request, session, url_for
 from mysql.connector import Error
@@ -71,7 +72,7 @@ def fetch_all_note_coordinates():
         with connection.cursor(dictionary=True) as cursor:
             cursor.execute(
                 """
-                SELECT noteID, latitude, longitude, hotspot, content
+                SELECT noteID, latitude, longitude, hotspot, content, createdAt
                 FROM notes
                 WHERE latitude IS NOT NULL AND longitude IS NOT NULL
                 """
@@ -79,6 +80,16 @@ def fetch_all_note_coordinates():
             return cursor.fetchall()
     finally:
         connection.close()
+
+
+def serialize_created_at(value):
+    if value is None:
+        return None
+
+    if isinstance(value, datetime):
+        return value.isoformat(timespec="seconds")
+
+    return str(value)
 
 
 def build_note_title(content):
@@ -157,11 +168,13 @@ def handle_nearby_spots_request(view_latitude, view_longitude, user_latitude, us
         if note_is_within_bounds(note_lat, note_lng, bounds):
             nearby_notes.append(
                 {
+                    "noteID": row["noteID"],
                     "latitude": note_lat,
                     "longitude": note_lng,
                     "hotspot": bool(row["hotspot"]),
                     "title": title,
                     "content": visible_content,
+                    "createdAt": serialize_created_at(row.get("createdAt")),
                 }
             )
 

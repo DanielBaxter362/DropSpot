@@ -1,13 +1,23 @@
+import datetime
 from flask import jsonify, request, session
 from mysql.connector import Error
-import datetime
 
 from config import DBconnect
 
 NOTE_CONTENT_SEPARATOR = "\n---DROPSPOT-DESC---\n"
 
 
-def add_spot_to_db(user_id, content, latitude, longitude, createdAt):
+def serialize_created_at(value):
+    if value is None:
+        return None
+
+    if isinstance(value, datetime.datetime):
+        return value.isoformat(timespec="seconds")
+
+    return str(value)
+
+
+def add_spot_to_db(user_id, content, latitude, longitude, created_at):
     connection = DBconnect()
     try:
         with connection.cursor() as cursor:
@@ -16,7 +26,7 @@ def add_spot_to_db(user_id, content, latitude, longitude, createdAt):
                 INSERT INTO notes (userID, content, latitude, longitude, hotspot, createdAt)
                 VALUES (%s, %s, %s, %s, 0, %s)
                 """,
-                (user_id, content, latitude, longitude, createdAt),
+                (user_id, content, latitude, longitude, created_at),
             )
         connection.commit()
     finally:
@@ -64,8 +74,8 @@ def init_addSpot(app):
             return jsonify({"error": str(e)}), 400
 
         try:
-            createdAt = datetime.datetime(now)
-            add_spot_to_db(session["userID"], content, latitude, longitude, createdAt)
+            created_at = datetime.datetime.now()
+            add_spot_to_db(session["userID"], content, latitude, longitude, created_at)
         except Error as e:
             print(e)
             return jsonify({"error": "Database unavailable"}), 503
@@ -81,7 +91,7 @@ def init_addSpot(app):
                     "latitude": latitude,
                     "longitude": longitude,
                     "hotspot": False,
-                    "datetime" : createdAt,
+                    "createdAt": serialize_created_at(created_at),
                 },
             }
         ), 201
