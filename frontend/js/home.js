@@ -8,6 +8,7 @@ const CONTENT_UNLOCK_RADIUS_METRES = 50;
 const ZOOM_LEVELS = [5,8,10,12,16,18,20];
 const ZOOM_RADIUS_MILES = [220, 150, 90, 35, 12, 3, 0.75];
 const SAVED_ZOOM_KEY = "dropspot-map-zoom";
+const LOCATION_REFRESH_MS = 5000;
 const savedZoom = Number.parseInt(localStorage.getItem(SAVED_ZOOM_KEY) || "", 10);
 const initialZoom = Number.isFinite(savedZoom) && ZOOM_LEVELS.includes(savedZoom) ? savedZoom : 18;
 
@@ -221,11 +222,69 @@ async function refreshNearbySpots() {
   displayNearbyNotes(result.notes || []);
 }
 
-setInterval(() => {
-  if (lastKnownPosition) {
-    locateMe({ recenter: false });
+function applyLocationUpdate(lat, lon, recenter) {
+  lastKnownPosition = { lat, lng: lon };
+
+  if (userMarker) {
+    map.removeLayer(userMarker);
   }
-}, 10000);
+
+  if (contentRadiusCircle) {
+    map.removeLayer(contentRadiusCircle);
+  }
+
+  userMarker = L.marker([lat, lon], { icon: makeYouIcon(), zIndexOffset: 1000 }).addTo(map);
+  contentRadiusCircle = L.circle([lat, lon], {
+    radius: CONTENT_UNLOCK_RADIUS_METRES,
+    color: '#e8ff47',
+    weight: 1.5,
+    opacity: 0.9,
+    dashArray: '6 6',
+    fillColor: '#e8ff47',
+    fillOpacity: 0.08,
+    interactive: false
+  }).addTo(map);
+
+  if (recenter) {
+    map.flyTo([lat, lon], map.getZoom(), { duration: 1.2 });
+  }
+  console.log("user location", lat, lon);
+}
+
+async function refreshUserLocation(options = {}) {
+  const { recenter = false, refreshHotspots = false } = options;
+
+  if (!navigator.geolocation) {
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      applyLocationUpdate(lat, lon, recenter);
+
+      if (refreshHotspots) {
+        await updateHotspots(lat, lon);
+      }
+
+      await refreshNearbySpots();
+    },
+    () => {
+      if (recenter) {
+        toast('Could not get location.');
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 10000
+    }
+  );
+}
+
+setInterval(() => {
+  refreshUserLocation();
+}, LOCATION_REFRESH_MS);
 
 
 // ── Locate user ──
@@ -233,30 +292,7 @@ function locateMe(options = {}) {
   const { recenter = true } = options;
 
   if (!navigator.geolocation) return toast('Geolocation not supported.');
-  navigator.geolocation.getCurrentPosition(async pos => {
-    const { latitude: lat, longitude: lon } = pos.coords;
-    lastKnownPosition = { lat, lng: lon };
-    if (userMarker) map.removeLayer(userMarker);
-    if (contentRadiusCircle) map.removeLayer(contentRadiusCircle);
-    userMarker = L.marker([lat, lon], { icon: makeYouIcon(), zIndexOffset: 1000 }).addTo(map);
-    contentRadiusCircle = L.circle([lat, lon], {
-      radius: CONTENT_UNLOCK_RADIUS_METRES,
-      color: '#e8ff47',
-      weight: 1.5,
-      opacity: 0.9,
-      dashArray: '6 6',
-      fillColor: '#e8ff47',
-      fillOpacity: 0.08,
-      interactive: false
-    }).addTo(map);
-    if (recenter) {
-      map.flyTo([lat, lon], map.getZoom(), { duration: 1.2 });
-    }
-    await updateHotspots(lat, lon);
-    await refreshNearbySpots();
-  }, () => toast('Could not get location.'));
-
-    
+  refreshUserLocation({ recenter, refreshHotspots: true });
 }
 
 // find nearby notes
