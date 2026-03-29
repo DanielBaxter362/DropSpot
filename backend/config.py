@@ -9,7 +9,7 @@ def DBconnect():
             mydb = mysql.connector.connect(
                 host="mysql-35696173-dropspot.e.aivencloud.com",
                 user="avnadmin",
-                password="AVNS_ItCf9ga7ieYw24gVSqi",
+                password="AVNS_btnCAZGFNhSwM-Zmi2Y",
                 port=18662,
                 database="defaultdb",
                 ssl_ca='DropSpot/ca.pem'
