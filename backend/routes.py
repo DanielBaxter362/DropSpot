@@ -10,6 +10,7 @@ from config import DBconnect
 SEARCH_RADIUS_MILES = 10
 HOTSPOT_RADIUS_METRES = 50
 HOTSPOT_THRESHOLD = 2
+CONTENT_UNLOCK_RADIUS_METRES = 15
 
 
 def hash_password(password):
@@ -40,6 +41,18 @@ def fetch_all_note_coordinates():
             return cursor.fetchall()
     finally:
         connection.close()
+
+
+def build_note_title(content):
+    cleaned_content = " ".join(str(content or "").split())
+
+    if not cleaned_content:
+        return "Untitled note"
+
+    if len(cleaned_content) <= 32:
+        return cleaned_content
+
+    return f"{cleaned_content[:32].rstrip()}..."
 
 
 def get_user_by_email(email):
@@ -75,16 +88,20 @@ def handle_nearby_spots_request(latitude, longitude):
     for row in rows:
         note_lat = float(row["latitude"])
         note_lng = float(row["longitude"])
-        distance = get_distance_in_miles(latitude, longitude, note_lat, note_lng)
-        content = str(row["content"])
+        distance_miles = get_distance_in_miles(latitude, longitude, note_lat, note_lng)
+        distance_metres = get_distance_in_metres(latitude, longitude, note_lat, note_lng)
+        content = str(row["content"] or "")
+        title = build_note_title(content)
+        visible_content = content if distance_metres <= CONTENT_UNLOCK_RADIUS_METRES else "Locked!"
 
-        if distance <= SEARCH_RADIUS_MILES:
+        if distance_miles <= SEARCH_RADIUS_MILES:
             nearby_notes.append(
                 {
                     "latitude": note_lat,
                     "longitude": note_lng,
                     "hotspot": bool(row["hotspot"]),
-                    "content": content
+                    "title": title,
+                    "content": visible_content,
                 }
             )
 
