@@ -6,6 +6,7 @@ let lastKnownPosition = null;
 const API_BASE_URL = "http://127.0.0.1:5000";
 const CONTENT_UNLOCK_RADIUS_METRES = 15;
 const ZOOM_LEVELS = [5,8,10,12,16,18,20];
+const ZOOM_RADIUS_MILES = [220, 150, 90, 35, 12, 3, 0.75];
 
 // ── Init Map ──
 map = L.map('map', {
@@ -108,6 +109,13 @@ function createDisplayedSpot(note) {
   };
 }
 
+function getCurrentRadiusMiles() {
+  const currentZoom = map.getZoom();
+  const idx = ZOOM_LEVELS.reduce((best, lvl, i) =>
+    Math.abs(lvl - currentZoom) < Math.abs(ZOOM_LEVELS[best] - currentZoom) ? i : best, 0);
+  return ZOOM_RADIUS_MILES[idx];
+}
+
 // ── Zoom slider ──
 const zoomSlider = document.getElementById('zoom-slider');
 const zoomTooltip = document.getElementById('zoom-tooltip');
@@ -133,9 +141,23 @@ map.on('zoomend', () => {
   const idx = ZOOM_LEVELS.reduce((best, lvl, i) =>
     Math.abs(lvl - current) < Math.abs(ZOOM_LEVELS[best] - current) ? i : best, 0);
   updateSliderUI(idx);
+
+  if (lastKnownPosition) {
+    refreshNearbySpots();
+  }
 });
 
 updateSliderUI(2);
+
+async function refreshNearbySpots() {
+  if (!lastKnownPosition) {
+    return;
+  }
+
+  const { lat, lng } = lastKnownPosition;
+  const result = await fetchNearbySpots(lat, lng);
+  displayNearbyNotes(result.notes || []);
+}
 
 // ── Locate user ──
 function locateMe() {
@@ -159,8 +181,7 @@ function locateMe() {
     map.flyTo([lat, lon], 18, { duration: 1.2 });
     toast('📍 Location found!');
     await updateHotspots(lat, lon);
-    const result = await fetchNearbySpots(lat, lon);
-    displayNearbyNotes(result.notes || []);
+    await refreshNearbySpots();
   }, () => toast('Could not get location.'));
 
     
@@ -172,7 +193,11 @@ async function fetchNearbySpots(lat, lon) {
   try {
     return await postJson(
       "/api/spots/nearby",
-      { latitude: lat, longitude: lon },
+      {
+        latitude: lat,
+        longitude: lon,
+        radiusMiles: getCurrentRadiusMiles()
+      },
       "Failed to fetch spots"
     );
   } catch (error) {

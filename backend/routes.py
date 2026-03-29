@@ -27,6 +27,15 @@ def parse_coordinates(payload):
     return float(latitude), float(longitude)
 
 
+def parse_search_radius(payload):
+    radius = payload.get("radiusMiles")
+
+    if radius is None:
+        return SEARCH_RADIUS_MILES
+
+    return float(radius)
+
+
 def fetch_all_note_coordinates():
     connection = DBconnect()
     try:
@@ -81,7 +90,7 @@ def create_user(email, password):
         connection.close()
 
 
-def handle_nearby_spots_request(latitude, longitude):
+def handle_nearby_spots_request(latitude, longitude, radius_miles):
     rows = fetch_all_note_coordinates()
     nearby_notes = []
 
@@ -94,7 +103,7 @@ def handle_nearby_spots_request(latitude, longitude):
         title = build_note_title(content)
         visible_content = content if distance_metres <= CONTENT_UNLOCK_RADIUS_METRES else "Locked!"
 
-        if distance_miles <= SEARCH_RADIUS_MILES:
+        if distance_miles <= radius_miles:
             nearby_notes.append(
                 {
                     "latitude": note_lat,
@@ -110,7 +119,7 @@ def handle_nearby_spots_request(latitude, longitude):
             "latitude": latitude,
             "longitude": longitude,
         },
-        "radiusMiles": SEARCH_RADIUS_MILES,
+        "radiusMiles": radius_miles,
         "count": len(nearby_notes),
         "notes": nearby_notes,
     }
@@ -294,11 +303,12 @@ def init_routes(app):
 
         try:
             latitude, longitude = parse_coordinates(payload)
+            radius_miles = parse_search_radius(payload)
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
 
         try:
-            result = handle_nearby_spots_request(latitude, longitude)
+            result = handle_nearby_spots_request(latitude, longitude, radius_miles)
             return jsonify(result), 200
         except Error as e:
             print(e)
