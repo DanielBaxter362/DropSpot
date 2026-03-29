@@ -4,12 +4,14 @@ let pendingLatLng = null;
 let map, userMarker, hotspotCircles = [], spotMarkers = [];
 let lastKnownPosition = null;
 const API_BASE_URL = "http://127.0.0.1:5000";
+const ZOOM_LEVELS = [5,8,10,12,16,18,20];
 
 // ── Init Map ──
 map = L.map('map', {
   center: [51.505, -0.09],
-  zoom: 13,
-  zoomControl: true,
+  zoom: 18,
+  zoomControl: false,
+  scrollWheelZoom: false,
   wheelDebounceTime: 80,
   wheelPxPerZoomLevel: 180,
 });
@@ -19,6 +21,18 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
   subdomains: 'abcd',
   maxZoom: 20
 }).addTo(map);
+
+// ── Snapped scroll zoom (5 levels only) ──
+map.getContainer().addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const current = map.getZoom();
+  const idx = ZOOM_LEVELS.reduce((best, lvl, i) =>
+    Math.abs(lvl - current) < Math.abs(ZOOM_LEVELS[best] - current) ? i : best, 0);
+  const next = e.deltaY < 0
+    ? Math.min(idx + 1, ZOOM_LEVELS.length - 1)
+    : Math.max(idx - 1, 0);
+  if (next !== idx) map.setZoom(ZOOM_LEVELS[next]);
+}, { passive: false });
 
 
 // ── Custom icon factories ──
@@ -93,6 +107,35 @@ function createDisplayedSpot(note) {
   };
 }
 
+// ── Zoom slider ──
+const zoomSlider = document.getElementById('zoom-slider');
+const zoomTooltip = document.getElementById('zoom-tooltip');
+
+function updateSliderUI(idx) {
+  zoomSlider.value = idx;
+  zoomTooltip.textContent = `z${ZOOM_LEVELS[idx]}`;
+  const pct = idx / (ZOOM_LEVELS.length - 1);
+  const sliderWidth = zoomSlider.offsetWidth;
+  const thumbRadius = 11;
+  const offset = thumbRadius + pct * (sliderWidth - thumbRadius * 2);
+  zoomTooltip.style.left = `${offset}px`;
+}
+
+zoomSlider.addEventListener('input', () => {
+  const idx = +zoomSlider.value;
+  map.setZoom(ZOOM_LEVELS[idx]);
+  updateSliderUI(idx);
+});
+
+map.on('zoomend', () => {
+  const current = map.getZoom();
+  const idx = ZOOM_LEVELS.reduce((best, lvl, i) =>
+    Math.abs(lvl - current) < Math.abs(ZOOM_LEVELS[best] - current) ? i : best, 0);
+  updateSliderUI(idx);
+});
+
+updateSliderUI(2);
+
 // ── Locate user ──
 function locateMe() {
   if (!navigator.geolocation) return toast('Geolocation not supported.');
@@ -101,7 +144,7 @@ function locateMe() {
     lastKnownPosition = { lat, lng: lon };
     if (userMarker) map.removeLayer(userMarker);
     userMarker = L.marker([lat, lon], { icon: makeYouIcon(), zIndexOffset: 1000 }).addTo(map);
-    map.flyTo([lat, lon], 15, { duration: 1.2 });
+    map.flyTo([lat, lon], 18, { duration: 1.2 });
     toast('📍 Location found!');
     await updateHotspots(lat, lon);
     const result = await fetchNearbySpots(lat, lon);
@@ -288,7 +331,7 @@ function logOut() {
 }
 
 function flyTo(lat, lng, id) {
-  map.flyTo([lat, lng], 16, { duration: 0.8 });
+  map.flyTo([lat, lng], 10, { duration: 0.8 });
   const marker = spotMarkers.find(m => m._spotId === id);
   if (marker) setTimeout(() => marker.openPopup(), 900);
 }
