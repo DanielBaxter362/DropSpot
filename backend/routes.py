@@ -48,6 +48,23 @@ def parse_search_radius(payload):
     return float(radius)
 
 
+def parse_map_bounds(payload):
+    north = payload.get("north")
+    south = payload.get("south")
+    east = payload.get("east")
+    west = payload.get("west")
+
+    if None in (north, south, east, west):
+        return None
+
+    return {
+        "north": float(north),
+        "south": float(south),
+        "east": float(east),
+        "west": float(west),
+    }
+
+
 def fetch_all_note_coordinates():
     connection = DBconnect()
     try:
@@ -111,20 +128,33 @@ def create_user(email, password):
         connection.close()
 
 
-def handle_nearby_spots_request(view_latitude, view_longitude, user_latitude, user_longitude, radius_miles):
+def note_is_within_bounds(note_latitude, note_longitude, bounds):
+    if bounds is None:
+        return True
+
+    within_latitude = bounds["south"] <= note_latitude <= bounds["north"]
+
+    if bounds["west"] <= bounds["east"]:
+        within_longitude = bounds["west"] <= note_longitude <= bounds["east"]
+    else:
+        within_longitude = note_longitude >= bounds["west"] or note_longitude <= bounds["east"]
+
+    return within_latitude and within_longitude
+
+
+def handle_nearby_spots_request(view_latitude, view_longitude, user_latitude, user_longitude, radius_miles, bounds=None):
     rows = fetch_all_note_coordinates()
     nearby_notes = []
 
     for row in rows:
         note_lat = float(row["latitude"])
         note_lng = float(row["longitude"])
-        distance_miles = get_distance_in_miles(view_latitude, view_longitude, note_lat, note_lng)
         distance_metres = get_distance_in_metres(user_latitude, user_longitude, note_lat, note_lng)
         stored_content = str(row["content"] or "")
         title, description = split_note_content(stored_content)
         visible_content = description if distance_metres <= CONTENT_UNLOCK_RADIUS_METRES else "Locked!"
 
-        if distance_miles <= radius_miles:
+        if note_is_within_bounds(note_lat, note_lng, bounds):
             nearby_notes.append(
                 {
                     "latitude": note_lat,
@@ -140,6 +170,7 @@ def handle_nearby_spots_request(view_latitude, view_longitude, user_latitude, us
             "latitude": view_latitude,
             "longitude": view_longitude,
         },
+        "bounds": bounds,
         "radiusMiles": radius_miles,
         "count": len(nearby_notes),
         "notes": nearby_notes,
@@ -327,6 +358,7 @@ def init_routes(app):
             latitude, longitude = parse_coordinates(payload)
             user_latitude, user_longitude = parse_user_coordinates(payload, latitude, longitude)
             radius_miles = parse_search_radius(payload)
+            bounds = parse_map_bounds(payload)
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
 
@@ -337,6 +369,7 @@ def init_routes(app):
                 user_latitude,
                 user_longitude,
                 radius_miles,
+                bounds,
             )
             return jsonify(result), 200
         except Error as e:

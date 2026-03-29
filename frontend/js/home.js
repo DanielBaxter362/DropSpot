@@ -298,6 +298,8 @@ function locateMe(options = {}) {
 // find nearby notes
 
 async function fetchNearbySpots(lat, lon) {
+  const bounds = map.getBounds();
+
   try {
     return await postJson(
       "/api/spots/nearby",
@@ -306,7 +308,11 @@ async function fetchNearbySpots(lat, lon) {
         longitude: lon,
         userLatitude: lastKnownPosition?.lat,
         userLongitude: lastKnownPosition?.lng,
-        radiusMiles: getCurrentRadiusMiles()
+        radiusMiles: getCurrentRadiusMiles(),
+        north: bounds.getNorth(),
+        south: bounds.getSouth(),
+        east: bounds.getEast(),
+        west: bounds.getWest()
       },
       "Failed to fetch spots"
     );
