@@ -7,11 +7,14 @@ const API_BASE_URL = "http://127.0.0.1:5000";
 const CONTENT_UNLOCK_RADIUS_METRES = 50;
 const ZOOM_LEVELS = [5,8,10,12,16,18,20];
 const ZOOM_RADIUS_MILES = [220, 150, 90, 35, 12, 3, 0.75];
+const SAVED_ZOOM_KEY = "dropspot-map-zoom";
+const savedZoom = Number.parseInt(localStorage.getItem(SAVED_ZOOM_KEY) || "", 10);
+const initialZoom = Number.isFinite(savedZoom) && ZOOM_LEVELS.includes(savedZoom) ? savedZoom : 18;
 
 // ── Init Map ──
 map = L.map('map', {
   center: [51.505, -0.09],
-  zoom: 18,
+  zoom: initialZoom,
   zoomControl: false,
   scrollWheelZoom: false,
   wheelDebounceTime: 80,
@@ -170,30 +173,29 @@ function getCurrentRadiusMiles() {
   return ZOOM_RADIUS_MILES[idx];
 }
 
+function getNearestZoomIndex(zoom) {
+  return ZOOM_LEVELS.reduce((best, lvl, i) =>
+    Math.abs(lvl - zoom) < Math.abs(ZOOM_LEVELS[best] - zoom) ? i : best, 0);
+}
+
 // ── Zoom slider ──
 const zoomSlider = document.getElementById('zoom-slider');
-const zoomTooltip = document.getElementById('zoom-tooltip');
 
 function updateSliderUI(idx) {
   zoomSlider.value = idx;
-  zoomTooltip.textContent = `z${ZOOM_LEVELS[idx]}`;
-  const pct = idx / (ZOOM_LEVELS.length - 1);
-  const sliderWidth = zoomSlider.offsetWidth;
-  const thumbRadius = 11;
-  const offset = thumbRadius + pct * (sliderWidth - thumbRadius * 2);
-  zoomTooltip.style.left = `${offset}px`;
 }
 
 zoomSlider.addEventListener('input', () => {
   const idx = +zoomSlider.value;
+  localStorage.setItem(SAVED_ZOOM_KEY, String(ZOOM_LEVELS[idx]));
   map.setZoom(ZOOM_LEVELS[idx]);
   updateSliderUI(idx);
 });
 
 map.on('zoomend', () => {
   const current = map.getZoom();
-  const idx = ZOOM_LEVELS.reduce((best, lvl, i) =>
-    Math.abs(lvl - current) < Math.abs(ZOOM_LEVELS[best] - current) ? i : best, 0);
+  const idx = getNearestZoomIndex(current);
+  localStorage.setItem(SAVED_ZOOM_KEY, String(ZOOM_LEVELS[idx]));
   updateSliderUI(idx);
 
   if (lastKnownPosition) {
@@ -207,7 +209,7 @@ map.on('moveend', () => {
   }
 });
 
-updateSliderUI(2);
+updateSliderUI(getNearestZoomIndex(initialZoom));
 
 async function refreshNearbySpots() {
   if (!lastKnownPosition) {
@@ -219,8 +221,17 @@ async function refreshNearbySpots() {
   displayNearbyNotes(result.notes || []);
 }
 
+setInterval(() => {
+  if (lastKnownPosition) {
+    locateMe({ recenter: false });
+  }
+}, 10000);
+
+
 // ── Locate user ──
-function locateMe() {
+function locateMe(options = {}) {
+  const { recenter = true } = options;
+
   if (!navigator.geolocation) return toast('Geolocation not supported.');
   navigator.geolocation.getCurrentPosition(async pos => {
     const { latitude: lat, longitude: lon } = pos.coords;
@@ -238,8 +249,9 @@ function locateMe() {
       fillOpacity: 0.08,
       interactive: false
     }).addTo(map);
-    map.flyTo([lat, lon], 18, { duration: 1.2 });
-    toast('📍 Location found!');
+    if (recenter) {
+      map.flyTo([lat, lon], map.getZoom(), { duration: 1.2 });
+    }
     await updateHotspots(lat, lon);
     await refreshNearbySpots();
   }, () => toast('Could not get location.'));
