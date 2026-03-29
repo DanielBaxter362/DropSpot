@@ -32,7 +32,7 @@ def fetch_all_note_coordinates():
         with connection.cursor(dictionary=True) as cursor:
             cursor.execute(
                 """
-                SELECT noteID, latitude, longitude, hotspot
+                SELECT noteID, latitude, longitude, hotspot, content
                 FROM notes
                 WHERE latitude IS NOT NULL AND longitude IS NOT NULL
                 """
@@ -76,6 +76,7 @@ def handle_nearby_spots_request(latitude, longitude):
         note_lat = float(row["latitude"])
         note_lng = float(row["longitude"])
         distance = get_distance_in_miles(latitude, longitude, note_lat, note_lng)
+        content = str(row["content"])
 
         if distance <= SEARCH_RADIUS_MILES:
             nearby_notes.append(
@@ -83,6 +84,7 @@ def handle_nearby_spots_request(latitude, longitude):
                     "latitude": note_lat,
                     "longitude": note_lng,
                     "hotspot": bool(row["hotspot"]),
+                    "content": content
                 }
             )
 

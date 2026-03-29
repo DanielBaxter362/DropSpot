@@ -87,7 +87,7 @@ function createDisplayedSpot(note) {
     lat: note.latitude,
     lng: note.longitude,
     text: note.content || "Nearby spot",
-    time: note.time || "Loaded from backend",
+    time: note.content || "",
     hotspot: note.hotspot,
     id: note.id || note.noteID || Date.now(),
   };
