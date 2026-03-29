@@ -24,13 +24,8 @@
   <div class="header-actions">
     <button class="btn" onclick="locateMe()">📍 My Location</button>
     <button class="btn primary" onclick="openSpotModal()">+ Drop A Spot</button>
-    <div class="dropdown-wrapper">
-      <button class="btn" onclick="toggleDropdown()">Account ▾</button>
-        <div class="dropdown-menu" id="dropdown-menu">
-          <button class="dropdown-item" onclick="accountSettings()">Account Settings</button>
-          <button class="dropdown-item" onclick="logOut()">Log Out</button>
-        </div>
-    </div>
+    <button class="btn" onclick="logOut()">Log Out</button>
+    <button class="btn" onclick="accountSettings()">Manage</button>
   </div>
 </header>
 
@@ -51,8 +46,11 @@
     <div class="modal-title">Drop a Spot</div>
     <div class="modal-subtitle" id="modal-coords">at your selected location</div>
 
-    <label class="field-label">Your Spot</label>
-    <textarea class="field-textarea" id="spot-text" placeholder="What's happening here? What do you want to remember?"></textarea>
+    <label class="field-label">Title</label>
+    <input class="field-input" id="spot-title" type="text" placeholder="Where are you?">
+
+    <label class="field-label">Description</label>
+    <textarea class="field-textarea" id="spot-description" placeholder="What's happening here? What do you want to remember?"></textarea>
 
 
     <div class="modal-actions">

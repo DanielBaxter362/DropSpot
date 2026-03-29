@@ -6,7 +6,7 @@
   <title>DropSpot — Account Settings</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
   <style>
     /* ── Account Page Layout ── */
     body {
@@ -219,67 +219,22 @@
   <!-- Page heading -->
   <div>
     <div class="page-title">Account <span>Settings</span></div>
-    <div class="page-subtitle">Manage your profile, security, and spots.</div>
+    <div class="page-subtitle">Update your username and manage your spots.</div>
   </div>
 
-  <!-- ── Profile ── -->
   <div class="settings-section">
     <div class="section-header">
       <div class="section-icon">👤</div>
-      <div class="section-title">Profile</div>
+      <div class="section-title">Username</div>
     </div>
     <div class="section-body">
       <div class="form-row">
-        <label class="field-label">Username</label>
+        <label class="field-label">Change Username</label>
         <input class="field-input" id="username" type="text" placeholder="your_username" />
       </div>
-      <div class="form-row">
-        <label class="field-label">Bio <span style="color:var(--muted);font-size:0.6rem;">(optional)</span></label>
-        <textarea class="field-textarea" id="bio" placeholder="A few words about yourself..." style="height:70px;margin-bottom:0;"></textarea>
-      </div>
       <div class="save-row">
-        <button class="btn primary" onclick="saveProfile()">Save Profile</button>
+        <button class="btn primary" onclick="saveUsername()">Save Username</button>
       </div>
-    </div>
-  </div>
-
-  <!-- ── Security ── -->
-  <div class="settings-section">
-    <div class="section-header">
-      <div class="section-icon">🔒</div>
-      <div class="section-title">Security</div>
-    </div>
-    <div class="section-body">
-
-      <!-- Change Email -->
-      <div class="form-row">
-        <label class="field-label">Email Address</label>
-        <div class="form-row-inline">
-          <div class="form-row">
-            <input class="field-input" id="email-current" type="email" placeholder="current@email.com" style="margin-bottom:0;" />
-          </div>
-          <div class="form-row">
-            <input class="field-input" id="email-new" type="email" placeholder="new@email.com" style="margin-bottom:0;" />
-          </div>
-        </div>
-      </div>
-      <div class="save-row">
-        <button class="btn" onclick="changeEmail()">Update Email</button>
-      </div>
-
-      <hr class="section-divider">
-
-      <!-- Change Password -->
-      <div class="form-row">
-        <label class="field-label">Change Password</label>
-        <input class="field-input" id="password-current" type="password" placeholder="Current password" />
-        <input class="field-input" id="password-new" type="password" placeholder="New password" />
-        <input class="field-input" id="password-confirm" type="password" placeholder="Confirm new password" style="margin-bottom:0;" />
-      </div>
-      <div class="save-row">
-        <button class="btn" onclick="changePassword()">Update Password</button>
-      </div>
-
     </div>
   </div>
 
@@ -296,27 +251,8 @@
     </div>
   </div>
 
-  <!-- ── Danger Zone ── -->
-  <div class="settings-section" style="border-color: #2e1a1a;">
-    <div class="section-header" style="border-color: #2e1a1a;">
-      <div class="section-icon">⚠️</div>
-      <div class="section-title" style="color: var(--hot);">Danger Zone</div>
-    </div>
-    <div class="section-body">
-      <p class="danger-text">
-        Deleting your account is <b>permanent</b> and cannot be undone.
-        All your spots and data will be removed immediately.
-      </p>
-      <div>
-        <button class="btn" style="border-color:#2e1a1a;color:var(--hot);" onclick="confirmDeleteAccount()">
-          Delete Account
-        </button>
-      </div>
-    </div>
-  </div>
-
 </div>
 
-<script src="account.js"></script>
+<script src="{{ url_for('static', filename='js/accountDetails.js') }}"></script>
 </body>
 </html>

@@ -3,6 +3,8 @@ from mysql.connector import Error
 
 from config import DBconnect
 
+NOTE_CONTENT_SEPARATOR = "\n---DROPSPOT-DESC---\n"
+
 
 def add_spot_to_db(user_id, content, latitude, longitude):
     connection = DBconnect()
@@ -20,18 +22,31 @@ def add_spot_to_db(user_id, content, latitude, longitude):
         connection.close()
 
 
+def combine_note_content(title, description):
+    clean_title = " ".join(str(title or "").split()).strip()
+    clean_description = str(description or "").strip()
+
+    if not clean_title:
+        raise ValueError("title is required")
+
+    if not clean_description:
+        raise ValueError("description is required")
+
+    return f"{clean_title}{NOTE_CONTENT_SEPARATOR}{clean_description}"
+
+
 def parse_spot_payload(payload):
-    content = (payload.get("content") or "").strip()
+    title = (payload.get("title") or "").strip()
+    description = (payload.get("description") or "").strip()
     latitude = payload.get("latitude")
     longitude = payload.get("longitude")
-
-    if not content:
-        raise ValueError("content is required")
 
     if latitude is None or longitude is None:
         raise ValueError("latitude and longitude are required")
 
-    return content, float(latitude), float(longitude)
+    content = combine_note_content(title, description)
+
+    return title, description, content, float(latitude), float(longitude)
 
 
 def init_addSpot(app):
@@ -43,7 +58,7 @@ def init_addSpot(app):
         payload = request.get_json(silent=True) or {}
 
         try:
-            content, latitude, longitude = parse_spot_payload(payload)
+            title, description, content, latitude, longitude = parse_spot_payload(payload)
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
 
@@ -58,6 +73,8 @@ def init_addSpot(app):
                 "message": "Spot saved",
                 "spot": {
                     "userID": session["userID"],
+                    "title": title,
+                    "description": description,
                     "content": content,
                     "latitude": latitude,
                     "longitude": longitude,

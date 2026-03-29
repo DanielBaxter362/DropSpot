@@ -201,6 +201,12 @@ map.on('zoomend', () => {
   }
 });
 
+map.on('moveend', () => {
+  if (lastKnownPosition) {
+    refreshNearbySpots();
+  }
+});
+
 updateSliderUI(2);
 
 async function refreshNearbySpots() {
@@ -208,8 +214,8 @@ async function refreshNearbySpots() {
     return;
   }
 
-  const { lat, lng } = lastKnownPosition;
-  const result = await fetchNearbySpots(lat, lng);
+  const center = map.getCenter();
+  const result = await fetchNearbySpots(center.lat, center.lng);
   displayNearbyNotes(result.notes || []);
 }
 
@@ -250,6 +256,8 @@ async function fetchNearbySpots(lat, lon) {
       {
         latitude: lat,
         longitude: lon,
+        userLatitude: lastKnownPosition?.lat,
+        userLongitude: lastKnownPosition?.lng,
         radiusMiles: getCurrentRadiusMiles()
       },
       "Failed to fetch spots"
@@ -297,9 +305,10 @@ function openSpotModal() {
 
   pendingLatLng = lastKnownPosition;
   document.getElementById('modal-coords').textContent = 'at your current location';
-  document.getElementById('spot-text').value = '';
+  document.getElementById('spot-title').value = '';
+  document.getElementById('spot-description').value = '';
   document.getElementById('spot-modal').classList.add('open');
-  setTimeout(() => document.getElementById('spot-text').focus(), 150);
+  setTimeout(() => document.getElementById('spot-title').focus(), 150);
 }
 
 function closeModal() {
@@ -315,10 +324,11 @@ document.getElementById('spot-modal').addEventListener('click', (e) => {
 // ── Save spot ──
 
 async function handleSaveSpot() {
-  const text = document.getElementById('spot-text').value.trim();
+  const title = document.getElementById('spot-title').value.trim();
+  const description = document.getElementById('spot-description').value.trim();
 
-  if (!text) {
-    toast("Please write something first!");
+  if (!title || !description) {
+    toast("Add both a title and description.");
     return;
   }
 
@@ -326,7 +336,7 @@ async function handleSaveSpot() {
   const lat = lastKnownPosition.lat;
   const lon = lastKnownPosition.lng;
 
-  const savedSpot = await saveSpot(text, lat, lon);
+  const savedSpot = await saveSpot(title, description, lat, lon);
 
   if (!savedSpot) {
     return;
@@ -336,8 +346,8 @@ async function handleSaveSpot() {
     id: Date.now(),
     lat: savedSpot.latitude,
     lng: savedSpot.longitude,
-    title: text,
-    text: savedSpot.content,
+    title: savedSpot.title,
+    text: savedSpot.description,
     hotspot: savedSpot.hotspot,
     isFresh: true
   };
@@ -350,12 +360,13 @@ async function handleSaveSpot() {
   closeModal();
 }
 
-async function saveSpot(content, lat, lon) {
+async function saveSpot(title, description, lat, lon) {
   try {
     const data = await postJson(
       "/api/spots",
       {
-        content: content,
+        title: title,
+        description: description,
         latitude: lat,
         longitude: lon
       },
@@ -408,8 +419,7 @@ document.addEventListener('click', (e) => {
 });
 
 function accountSettings() {
-  toast('Account settings coming soon.');
-  window.location.href = "accountDetails.html";
+  window.location.href = "/account";
   toggleDropdown();
 }
 

@@ -11,6 +11,7 @@ SEARCH_RADIUS_MILES = 10
 HOTSPOT_RADIUS_METRES = 150
 HOTSPOT_THRESHOLD = 2
 CONTENT_UNLOCK_RADIUS_METRES = 50
+NOTE_CONTENT_SEPARATOR = "\n---DROPSPOT-DESC---\n"
 
 
 def hash_password(password):
@@ -23,6 +24,16 @@ def parse_coordinates(payload):
 
     if latitude is None or longitude is None:
         raise ValueError("latitude and longitude are required")
+
+    return float(latitude), float(longitude)
+
+
+def parse_user_coordinates(payload, fallback_latitude, fallback_longitude):
+    latitude = payload.get("userLatitude")
+    longitude = payload.get("userLongitude")
+
+    if latitude is None or longitude is None:
+        return fallback_latitude, fallback_longitude
 
     return float(latitude), float(longitude)
 
@@ -53,12 +64,24 @@ def fetch_all_note_coordinates():
 
 
 def build_note_title(content):
-    cleaned_content = " ".join(str(content or "").split())
+    title, _ = split_note_content(content)
+    return title
 
-    if not cleaned_content:
-        return "Untitled note"
 
-    return cleaned_content
+def split_note_content(content):
+    raw_content = str(content or "").strip()
+
+    if not raw_content:
+        return "Untitled note", ""
+
+    if NOTE_CONTENT_SEPARATOR in raw_content:
+        title_part, description_part = raw_content.split(NOTE_CONTENT_SEPARATOR, 1)
+        title = " ".join(title_part.split()).strip() or "Untitled note"
+        description = description_part.strip()
+        return title, description
+
+    cleaned_content = " ".join(raw_content.split())
+    return cleaned_content, cleaned_content
 
 
 def get_user_by_email(email):
@@ -87,18 +110,18 @@ def create_user(email, password):
         connection.close()
 
 
-def handle_nearby_spots_request(latitude, longitude, radius_miles):
+def handle_nearby_spots_request(view_latitude, view_longitude, user_latitude, user_longitude, radius_miles):
     rows = fetch_all_note_coordinates()
     nearby_notes = []
 
     for row in rows:
         note_lat = float(row["latitude"])
         note_lng = float(row["longitude"])
-        distance_miles = get_distance_in_miles(latitude, longitude, note_lat, note_lng)
-        distance_metres = get_distance_in_metres(latitude, longitude, note_lat, note_lng)
-        content = str(row["content"] or "")
-        title = build_note_title(content)
-        visible_content = content if distance_metres <= CONTENT_UNLOCK_RADIUS_METRES else "Locked!"
+        distance_miles = get_distance_in_miles(view_latitude, view_longitude, note_lat, note_lng)
+        distance_metres = get_distance_in_metres(user_latitude, user_longitude, note_lat, note_lng)
+        stored_content = str(row["content"] or "")
+        title, description = split_note_content(stored_content)
+        visible_content = description if distance_metres <= CONTENT_UNLOCK_RADIUS_METRES else "Locked!"
 
         if distance_miles <= radius_miles:
             nearby_notes.append(
@@ -113,8 +136,8 @@ def handle_nearby_spots_request(latitude, longitude, radius_miles):
 
     return {
         "searchCenter": {
-            "latitude": latitude,
-            "longitude": longitude,
+            "latitude": view_latitude,
+            "longitude": view_longitude,
         },
         "radiusMiles": radius_miles,
         "count": len(nearby_notes),
@@ -251,7 +274,7 @@ def init_routes(app):
             try:
                 existing_user = get_user_by_email(email)
                 if existing_user:
-                    message = "Account already exists."
+                    message = "Username already taken."
                 else:
                     create_user(email, password)
                     return redirect(url_for("login"))
@@ -300,12 +323,19 @@ def init_routes(app):
 
         try:
             latitude, longitude = parse_coordinates(payload)
+            user_latitude, user_longitude = parse_user_coordinates(payload, latitude, longitude)
             radius_miles = parse_search_radius(payload)
         except ValueError as e:
             return jsonify({"error": str(e)}), 400
 
         try:
-            result = handle_nearby_spots_request(latitude, longitude, radius_miles)
+            result = handle_nearby_spots_request(
+                latitude,
+                longitude,
+                user_latitude,
+                user_longitude,
+                radius_miles,
+            )
             return jsonify(result), 200
         except Error as e:
             print(e)

@@ -3,6 +3,7 @@ from flask_cors import CORS
 
 from routes import init_routes
 from addSpot import init_addSpot
+from noteManagement import init_note_management
 
 
 app = Flask(
@@ -15,6 +16,7 @@ CORS(app)
 
 init_routes(app)
 init_addSpot(app)
+init_note_management(app)
 
 if __name__ == "__main__":
     app.run(debug=True)
