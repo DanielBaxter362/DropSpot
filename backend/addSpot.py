@@ -1,21 +1,22 @@
 from flask import jsonify, request, session
 from mysql.connector import Error
+import datetime
 
 from config import DBconnect
 
 NOTE_CONTENT_SEPARATOR = "\n---DROPSPOT-DESC---\n"
 
 
-def add_spot_to_db(user_id, content, latitude, longitude):
+def add_spot_to_db(user_id, content, latitude, longitude, createdAt):
     connection = DBconnect()
     try:
         with connection.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO notes (userID, content, latitude, longitude, hotspot)
-                VALUES (%s, %s, %s, %s, 0)
+                INSERT INTO notes (userID, content, latitude, longitude, hotspot, createdAt)
+                VALUES (%s, %s, %s, %s, 0, %s)
                 """,
-                (user_id, content, latitude, longitude),
+                (user_id, content, latitude, longitude, createdAt),
             )
         connection.commit()
     finally:
@@ -63,7 +64,8 @@ def init_addSpot(app):
             return jsonify({"error": str(e)}), 400
 
         try:
-            add_spot_to_db(session["userID"], content, latitude, longitude)
+            createdAt = datetime.datetime(now)
+            add_spot_to_db(session["userID"], content, latitude, longitude, createdAt)
         except Error as e:
             print(e)
             return jsonify({"error": "Database unavailable"}), 503
@@ -79,6 +81,7 @@ def init_addSpot(app):
                     "latitude": latitude,
                     "longitude": longitude,
                     "hotspot": False,
+                    "datetime" : createdAt,
                 },
             }
         ), 201

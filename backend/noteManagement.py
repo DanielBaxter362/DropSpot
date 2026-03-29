@@ -5,6 +5,19 @@ from config import DBconnect
 
 NOTE_CONTENT_SEPARATOR = "\n---DROPSPOT-DESC---\n"
 
+def trimExpired():
+    connection = DBconnect()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                DELETE FROM notes
+                WHERE createdAt < NOW() - INTERVAL 24 HOUR
+                """
+            )
+        connection.commit()
+    finally:
+        connection.close()
 
 def get_user_account(user_id):
     connection = DBconnect()

@@ -5,6 +5,7 @@ from flask import jsonify, redirect, render_template, request, session, url_for
 from mysql.connector import Error
 
 from config import DBconnect
+from noteManagement import *
 
 
 SEARCH_RADIUS_MILES = 10
@@ -308,6 +309,7 @@ def init_routes(app):
 
     @app.route("/home")
     def home():
+        trimExpired()
         if not session.get("userID"):
             return redirect(url_for("login"))
         return render_template("home.html", email=session.get("email"))
