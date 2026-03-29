@@ -4,3 +4,4 @@ __pycache__/
 *.pyc
 ca.pem
 config.py
+backend/config.py
