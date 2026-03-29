@@ -258,11 +258,7 @@ function addMarker(spot) {
 
 // ── Render Sidebar ──
 function renderSidebar() {
-  const list = document.getElementById('spots-list');
-  if (spots.length === 0) {
-    list.innerHTML = `<div class="empty-state"> </div>`;
-    return;
-  }
+  return;
 }
 
 function toggleDropdown() {
@@ -296,7 +292,7 @@ function flyTo(lat, lng, id) {
 
 
 function updateStats() {
-  document.getElementById('spot-count').textContent = spots.length;
+  return;
 }
 
 // ── Clear All ──
@@ -312,7 +308,6 @@ function clearAll() {
   hotspotCircles = [];
   renderSidebar();
   updateStats();
-  document.getElementById('hotspot-count').textContent = 0;
   toast('All spots cleared.');
 }
 
