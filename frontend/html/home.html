@@ -20,8 +20,6 @@
     <div class="tagline">Make A Mark. Find A Story.</span></div>
   </div>
   <div class="header-actions">
-    <div class="stat-pill">Spots: <b id="spot-count">0</b></div>
-    <div class="stat-pill">Hotspots: <b id="hotspot-count">0</b></div>
     <button class="btn" onclick="locateMe()">📍 My Location</button>
     <button class="btn primary" onclick="openSpotModal()">+ Drop A Spot</button>
     <div class="dropdown-wrapper">
@@ -36,15 +34,6 @@
 
 <div class="app-body">
   <div id="map"></div>
-
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <span class="sidebar-title">Your Spots</span>
-      <button class="btn" style="padding:4px 10px;font-size:0.6rem;" onclick="clearAll()">Clear All</button>
-    </div>
-    <div class="spots-list" id="spots-list">
-    </div>
-  </div>
 </div>
 
 <!-- Legend -->

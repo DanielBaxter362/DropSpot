@@ -537,6 +537,13 @@ header {
 }
 .leaflet-popup-tip { background: var(--surface) !important; }
 .leaflet-popup-content { margin: 14px 16px !important; font-size: 0.78rem; line-height: 1.6; }
+.popup-title {
+  color: var(--accent);
+  font-family: 'Syne', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
 .popup-spot-text { color: var(--text); margin-bottom: 8px; }
 .popup-meta { font-size: 0.62rem; color: var(--muted); }
 .popup-tag {

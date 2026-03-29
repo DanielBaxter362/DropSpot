@@ -1,9 +1,10 @@
 // ── State ──
 let spots = JSON.parse(localStorage.getItem('geospots') || '[]');
 let pendingLatLng = null;
-let map, userMarker, hotspotCircles = [], spotMarkers = [];
+let map, userMarker, contentRadiusCircle, hotspotCircles = [], spotMarkers = [];
 let lastKnownPosition = null;
 const API_BASE_URL = "http://127.0.0.1:5000";
+const CONTENT_UNLOCK_RADIUS_METRES = 15;
 const ZOOM_LEVELS = [5,8,10,12,16,18,20];
 
 // ── Init Map ──
@@ -100,8 +101,8 @@ function createDisplayedSpot(note) {
   return {
     lat: note.latitude,
     lng: note.longitude,
-    text: note.content || "Nearby spot",
-    time: note.time || "Loaded from backend",
+    title: note.title || "Nearby spot",
+    text: note.content || "",
     hotspot: note.hotspot,
     id: note.id || note.noteID || Date.now(),
   };
@@ -143,7 +144,18 @@ function locateMe() {
     const { latitude: lat, longitude: lon } = pos.coords;
     lastKnownPosition = { lat, lng: lon };
     if (userMarker) map.removeLayer(userMarker);
+    if (contentRadiusCircle) map.removeLayer(contentRadiusCircle);
     userMarker = L.marker([lat, lon], { icon: makeYouIcon(), zIndexOffset: 1000 }).addTo(map);
+    contentRadiusCircle = L.circle([lat, lon], {
+      radius: CONTENT_UNLOCK_RADIUS_METRES,
+      color: '#e8ff47',
+      weight: 1.5,
+      opacity: 0.9,
+      dashArray: '6 6',
+      fillColor: '#e8ff47',
+      fillOpacity: 0.08,
+      interactive: false
+    }).addTo(map);
     map.flyTo([lat, lon], 18, { duration: 1.2 });
     toast('📍 Location found!');
     await updateHotspots(lat, lon);
@@ -246,8 +258,8 @@ async function handleSaveSpot() {
     id: Date.now(),
     lat: savedSpot.latitude,
     lng: savedSpot.longitude,
+    title: text.length <= 32 ? text : `${text.slice(0, 32).trimEnd()}...`,
     text: savedSpot.content,
-    time: new Date().toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' }),
     hotspot: savedSpot.hotspot,
     isFresh: true
   };
@@ -282,8 +294,8 @@ async function saveSpot(content, lat, lon) {
 // ── Add Marker ──
 function addMarker(spot) {
   const popupHtml = `
+    <div class="popup-title">${escHtml(spot.title || "Nearby spot")}</div>
     <div class="popup-spot-text">${escHtml(spot.text)}</div>
-    <div class="popup-meta">${spot.time}</div>
   `;
 
   const icon = spot.hotspot
@@ -301,11 +313,7 @@ function addMarker(spot) {
 
 // ── Render Sidebar ──
 function renderSidebar() {
-  const list = document.getElementById('spots-list');
-  if (spots.length === 0) {
-    list.innerHTML = `<div class="empty-state"> </div>`;
-    return;
-  }
+  return;
 }
 
 function toggleDropdown() {
@@ -339,7 +347,7 @@ function flyTo(lat, lng, id) {
 
 
 function updateStats() {
-  document.getElementById('spot-count').textContent = spots.length;
+  return;
 }
 
 // ── Clear All ──
@@ -355,7 +363,6 @@ function clearAll() {
   hotspotCircles = [];
   renderSidebar();
   updateStats();
-  document.getElementById('hotspot-count').textContent = 0;
   toast('All spots cleared.');
 }
 
