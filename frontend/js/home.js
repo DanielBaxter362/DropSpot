@@ -8,7 +8,7 @@ const CONTENT_UNLOCK_RADIUS_METRES = 50;
 const ZOOM_LEVELS = [5,8,10,12,16,18,20];
 const ZOOM_RADIUS_MILES = [220, 150, 90, 35, 12, 3, 0.75];
 const SAVED_ZOOM_KEY = "dropspot-map-zoom";
-const LOCATION_REFRESH_MS = 20000;
+const LOCATION_REFRESH_MS = 12000;
 const savedZoom = Number.parseInt(localStorage.getItem(SAVED_ZOOM_KEY) || "", 10);
 const initialZoom = Number.isFinite(savedZoom) && ZOOM_LEVELS.includes(savedZoom) ? savedZoom : 18;
 
